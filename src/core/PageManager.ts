@@ -6,22 +6,26 @@ import type {
 } from "../types.js";
 import { PlaywrightManager } from "./PlaywrightManager.js";
 import { ScriptInjector } from "./ScriptInjector.js";
+import { StyleInjector } from "./StyleInjector.js";
 
 export class PageManager {
   private pages: Map<string, Page> = new Map();
   private playwrightManager: PlaywrightManager;
   private scriptInjector: ScriptInjector;
+  private styleInjector: StyleInjector;
   private config: DevServerConfig;
   private context: PluginContext;
 
   constructor(
     playwrightManager: PlaywrightManager,
     scriptInjector: ScriptInjector,
+    styleInjector: StyleInjector,
     config: DevServerConfig,
     context: PluginContext
   ) {
     this.playwrightManager = playwrightManager;
     this.scriptInjector = scriptInjector;
+    this.styleInjector = styleInjector;
     this.config = config;
     this.context = context;
   }
@@ -55,6 +59,15 @@ export class PageManager {
         if (plugin.onPageLoad) {
           await plugin.onPageLoad(page, platformId, this.context);
         }
+      }
+
+      // 注入样式
+      if (platformConfig.styles && platformConfig.styles.length > 0) {
+        await this.styleInjector.injectStyles(
+          page,
+          platformConfig.styles,
+          platformId
+        );
       }
 
       // 注入脚本
@@ -106,9 +119,19 @@ export class PageManager {
     await page.goto(url);
     await page.waitForLoadState("domcontentloaded");
 
-    // 重新注入脚本
+    // 重新注入样式和脚本
     const platformConfig = this.config.platforms[platformId];
     if (platformConfig) {
+      // 重新注入样式
+      if (platformConfig.styles && platformConfig.styles.length > 0) {
+        await this.styleInjector.injectStyles(
+          page,
+          platformConfig.styles,
+          platformId
+        );
+      }
+      
+      // 重新注入脚本
       await this.scriptInjector.injectScripts(
         page,
         platformConfig.scripts,
@@ -118,7 +141,7 @@ export class PageManager {
   }
 
   /**
-   * 重新加载所有脚本
+   * 重新加载所有脚本和样式
    */
   async reloadAllScripts(): Promise<void> {
     for (const [platformId, page] of this.pages) {
@@ -126,6 +149,17 @@ export class PageManager {
       if (platformConfig) {
         await page.reload();
         await page.waitForLoadState("domcontentloaded");
+        
+        // 重新注入样式
+        if (platformConfig.styles && platformConfig.styles.length > 0) {
+          await this.styleInjector.injectStyles(
+            page,
+            platformConfig.styles,
+            platformId
+          );
+        }
+        
+        // 重新注入脚本
         await this.scriptInjector.injectScripts(
           page,
           platformConfig.scripts,

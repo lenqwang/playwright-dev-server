@@ -2,6 +2,7 @@ import { resolve } from 'path';
 import type { DevServerConfig, PluginContext } from './types.js';
 import { PlaywrightManager } from './core/PlaywrightManager.js';
 import { ScriptInjector } from './core/ScriptInjector.js';
+import { StyleInjector } from './core/StyleInjector.js';
 import { PageManager } from './core/PageManager.js';
 import { FileWatcher } from './core/FileWatcher.js';
 import { defaultConfig } from './config.js';
@@ -11,6 +12,7 @@ export class PlaywrightDevServer {
   private config: DevServerConfig;
   private playwrightManager: PlaywrightManager;
   private scriptInjector: ScriptInjector | null = null;
+  private styleInjector: StyleInjector | null = null;
   private pageManager: PageManager | null = null;
   private fileWatcher: FileWatcher | null = null;
   private context: PluginContext;
@@ -26,6 +28,7 @@ export class PlaywrightDevServer {
       config: this.config,
       pageManager: null as any, // 稍后设置
       scriptInjector: null as any, // 稍后设置
+      styleInjector: null as any, // 稍后设置
     };
   }
 
@@ -43,10 +46,15 @@ export class PlaywrightDevServer {
       this.scriptInjector = new ScriptInjector(this.projectRoot, this.context);
       this.context.scriptInjector = this.scriptInjector;
       
-      // 3. 初始化页面管理器
+      // 3. 初始化样式注入器
+      this.styleInjector = new StyleInjector(this.projectRoot, this.context);
+      this.context.styleInjector = this.styleInjector;
+      
+      // 4. 初始化页面管理器
       this.pageManager = new PageManager(
         this.playwrightManager,
         this.scriptInjector,
+        this.styleInjector,
         this.config,
         this.context
       );

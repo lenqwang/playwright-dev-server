@@ -15,6 +15,7 @@ export type {
 // 导出核心模块（供高级用户使用）
 export { PlaywrightManager } from './core/PlaywrightManager.js';
 export { ScriptInjector } from './core/ScriptInjector.js';
+export { StyleInjector } from './core/StyleInjector.js';
 export { PageManager } from './core/PageManager.js';
 export { FileWatcher } from './core/FileWatcher.js';
 

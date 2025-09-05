@@ -9,6 +9,15 @@ export interface ScriptConfig {
   autoInject?: boolean;
 }
 
+export interface StyleConfig {
+  /** CSS 文件路径 */
+  path: string;
+  /** 注入顺序 */
+  order?: number;
+  /** 是否在页面加载时自动注入 */
+  autoInject?: boolean;
+}
+
 export interface PlatformConfig {
   /** 平台名称 */
   name: string;
@@ -16,6 +25,8 @@ export interface PlatformConfig {
   url: string;
   /** 要注入的脚本列表 */
   scripts: ScriptConfig[];
+  /** 要注入的样式列表 */
+  styles?: StyleConfig[];
   /** 浏览器选项 */
   browserOptions?: {
     headless?: boolean;
@@ -42,6 +53,8 @@ export interface PluginContext {
   pageManager: any;
   /** 脚本注入器 */
   scriptInjector: any;
+  /** 样式注入器 */
+  styleInjector: any;
 }
 
 export interface Plugin {

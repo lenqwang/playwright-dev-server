@@ -81,6 +81,16 @@ export class FileWatcher {
         patterns.add(normalizedPath);
         console.log(`📜 Adding script file watch: ${normalizedPath} (platform: ${platformId})`);
       }
+      
+      // 添加样式文件监听
+      if (platformConfig.styles) {
+        for (const style of platformConfig.styles) {
+          // 标准化路径，移除 ./ 前缀
+          const normalizedPath = style.path.replace(/^\.\//, '');
+          patterns.add(normalizedPath);
+          console.log(`🎨 Adding style file watch: ${normalizedPath} (platform: ${platformId})`);
+        }
+      }
     }
 
     console.log(`🎯 Total collected ${patterns.size} watch patterns`);
@@ -161,30 +171,51 @@ export class FileWatcher {
   }
 
   /**
-   * 处理脚本文件变化（默认行为）
+   * 处理脚本或样式文件变化（默认行为）
    */
   private async handleScriptFileChange(filePath: string): Promise<void> {
     // 查找哪些平台使用了这个脚本
     const affectedPlatforms: string[] = [];
+    let fileType: 'script' | 'style' | null = null;
 
     for (const [platformId, platformConfig] of Object.entries(this.context.config.platforms)) {
+      // 检查脚本文件
       for (const script of platformConfig.scripts) {
-        // 标准化路径进行比较，移除 ./ 前缀
         const normalizedScriptPath = script.path.replace(/^\.\//, '');
         const normalizedFilePath = filePath.replace(/^\.\//, '');
         
         if (normalizedScriptPath === normalizedFilePath) {
           affectedPlatforms.push(platformId);
+          fileType = 'script';
           break;
+        }
+      }
+      
+      // 检查样式文件
+      if (platformConfig.styles) {
+        for (const style of platformConfig.styles) {
+          const normalizedStylePath = style.path.replace(/^\.\//, '');
+          const normalizedFilePath = filePath.replace(/^\.\//, '');
+          
+          if (normalizedStylePath === normalizedFilePath) {
+            affectedPlatforms.push(platformId);
+            fileType = 'style';
+            break;
+          }
         }
       }
     }
 
-    if (affectedPlatforms.length > 0) {
-      console.log(`🔄 Replacing script: ${filePath} (affected platforms: ${affectedPlatforms.join(', ')})`);
-      await this.replaceScript(filePath);
+    if (affectedPlatforms.length > 0 && fileType) {
+      if (fileType === 'script') {
+        console.log(`🔄 Replacing script: ${filePath} (affected platforms: ${affectedPlatforms.join(', ')})`);
+        await this.replaceScript(filePath);
+      } else if (fileType === 'style') {
+        console.log(`🔄 Replacing style: ${filePath} (affected platforms: ${affectedPlatforms.join(', ')})`);
+        await this.replaceStyle(filePath);
+      }
     } else {
-      console.log(`⚠️  Script file ${filePath} is not used by any platform`);
+      console.log(`⚠️  File ${filePath} is not used by any platform`);
     }
   }
 
@@ -212,6 +243,26 @@ export class FileWatcher {
       
       if (script) {
         await this.context.scriptInjector.replaceScript(page, scriptPath, platformId);
+      }
+    }
+  }
+
+  /**
+   * 替换样式
+   */
+  private async replaceStyle(stylePath: string): Promise<void> {
+    for (const [platformId, page] of this.pageManager['pages']) {
+      const platformConfig = this.context.config.platforms[platformId];
+      
+      // 标准化路径进行比较
+      const normalizedStylePath = stylePath.replace(/^\.\//, '');
+      const style = platformConfig?.styles?.find(s => {
+        const normalizedConfigPath = s.path.replace(/^\.\//, '');
+        return normalizedConfigPath === normalizedStylePath;
+      });
+      
+      if (style) {
+        await this.context.styleInjector.replaceStyle(page, stylePath, platformId);
       }
     }
   }
