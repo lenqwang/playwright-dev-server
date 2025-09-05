@@ -26,9 +26,9 @@ export const autoReloadPlugin: Plugin = {
               link.href = href + (href.includes('?') ? '&' : '?') + 't=' + Date.now();
             });
           });
-          console.log(`🎨 CSS 热重载: ${filePath}`);
+          console.log(`🎨 CSS hot reload: ${filePath}`);
         } catch (error) {
-          console.warn(`⚠️  CSS 热重载失败，执行完整重载: ${filePath}`);
+          console.warn(`⚠️  CSS hot reload failed, performing full reload: ${filePath}`);
           await page.reload();
         }
       }

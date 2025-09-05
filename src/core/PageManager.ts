@@ -35,7 +35,7 @@ export class PageManager {
     for (const [platformId, platformConfig] of Object.entries(
       this.config.platforms
     )) {
-      console.log(`🌐 启动平台页面: ${platformConfig.name} (${platformId})`);
+      console.log(`🌐 Starting platform page: ${platformConfig.name} (${platformId})`);
 
       const page = await browserContext.newPage();
 
@@ -65,7 +65,7 @@ export class PageManager {
       );
 
       this.pages.set(platformId, page);
-      console.log(`✅ 平台页面启动完成: ${platformConfig.name}`);
+      console.log(`✅ Platform page startup completed: ${platformConfig.name}`);
     }
   }
 
@@ -149,9 +149,9 @@ export class PageManager {
     for (const [platformId, page] of this.pages) {
       try {
         await page.close();
-        console.log(`🛑 页面已关闭: ${platformId}`);
+        console.log(`🛑 Page closed: ${platformId}`);
       } catch (error) {
-        console.error(`❌ 关闭页面失败: ${platformId}`, error);
+        console.error(`❌ Failed to close page: ${platformId}`, error);
       }
     }
 

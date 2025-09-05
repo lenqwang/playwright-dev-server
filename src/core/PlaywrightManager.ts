@@ -6,7 +6,7 @@ export class PlaywrightManager {
   private context: BrowserContext | null = null;
 
   async initialize(config: DevServerConfig) {
-    console.log('🚀 初始化 Playwright 浏览器...');
+    console.log('🚀 Initializing Playwright browser...');
     
     this.browser = await chromium.launch({
       headless: config.browserOptions?.headless ?? false,
@@ -16,7 +16,7 @@ export class PlaywrightManager {
 
     this.context = await this.browser.newContext();
     
-    console.log('✅ Playwright 浏览器初始化完成');
+    console.log('✅ Playwright browser initialization completed');
   }
 
   getBrowser(): Browser {
@@ -44,6 +44,6 @@ export class PlaywrightManager {
       this.browser = null;
     }
     
-    console.log('🛑 Playwright 浏览器已关闭');
+    console.log('🛑 Playwright browser closed');
   }
 }

@@ -28,6 +28,6 @@ export const consoleLoggerPlugin: Plugin = {
       }
     });
     
-    console.log(`🎧 控制台监听已启用: ${platformId}`);
+    console.log(`🎧 Console monitoring enabled: ${platformId}`);
   }
 };

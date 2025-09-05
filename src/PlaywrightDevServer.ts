@@ -34,7 +34,7 @@ export class PlaywrightDevServer {
    */
   async start(): Promise<this> {
     try {
-      console.log('🚀 启动 Playwright 开发服务器...');
+      console.log('🚀 Starting Playwright development server...');
       
       // 1. 初始化 Playwright
       await this.playwrightManager.initialize(this.config);
@@ -61,12 +61,12 @@ export class PlaywrightDevServer {
       // 6. 设置文件监控
       this.setupFileWatcher();
       
-      console.log('✅ Playwright 开发服务器已就绪！');
-      console.log('📱 支持的平台:', Object.keys(this.config.platforms).join(', '));
+      console.log('✅ Playwright development server is ready!');
+      console.log('📱 Supported platforms:', Object.keys(this.config.platforms).join(', '));
       
       return this;
     } catch (error) {
-      console.error('❌ 启动开发服务器失败:', error);
+      console.error('❌ Failed to start development server:', error);
       throw error;
     }
   }
@@ -77,16 +77,16 @@ export class PlaywrightDevServer {
   private async initializePlugins(): Promise<void> {
     if (!this.config.plugins) return;
 
-    console.log('🔌 初始化插件...');
+    console.log('🔌 Initializing plugins...');
     
     for (const plugin of this.config.plugins) {
       try {
         if (plugin.setup) {
           await plugin.setup(this.context);
         }
-        console.log(`✅ 插件初始化完成: ${plugin.name}`);
+        console.log(`✅ Plugin initialization completed: ${plugin.name}`);
       } catch (error) {
-        console.error(`❌ 插件初始化失败: ${plugin.name}`, error);
+        console.error(`❌ Plugin initialization failed: ${plugin.name}`, error);
       }
     }
   }
@@ -178,7 +178,7 @@ export class PlaywrightDevServer {
    * 停止服务器
    */
   async stop(): Promise<void> {
-    console.log('🛑 正在关闭 Playwright 开发服务器...');
+    console.log('🛑 Shutting down Playwright development server...');
     
     try {
       // 停止文件监控
@@ -196,9 +196,9 @@ export class PlaywrightDevServer {
         await this.playwrightManager.close();
       }
       
-      console.log('🛑 Playwright 开发服务器已停止');
+      console.log('🛑 Playwright development server stopped');
     } catch (error) {
-      console.error('❌ 关闭开发服务器时发生错误:', error);
+      console.error('❌ Error occurred while shutting down development server:', error);
     }
   }
 }

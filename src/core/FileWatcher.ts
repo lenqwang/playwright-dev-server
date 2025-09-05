@@ -1,10 +1,11 @@
-import chokidar from 'chokidar';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { resolve } from 'path';
+import { minimatch } from 'minimatch';
 import type { FileWatchRule, PluginContext } from '../types.js';
 import { PageManager } from './PageManager.js';
 
 export class FileWatcher {
-  private watcher: chokidar.FSWatcher | null = null;
+  private watcher: FSWatcher | null = null;
   private projectRoot: string;
   private pageManager: PageManager;
   private context: PluginContext;
@@ -26,13 +27,13 @@ export class FileWatcher {
    * 开始监听文件变化
    */
   startWatching(): void {
-    console.log('👀 开始监听文件变化...');
+    console.log('👀 Starting to watch file changes...');
 
     // 收集所有需要监听的文件模式
     const patterns = this.collectWatchPatterns();
     
     if (patterns.length === 0) {
-      console.log('⚠️  没有找到需要监听的文件模式');
+      console.log('⚠️  No file patterns found to watch');
       return;
     }
 
@@ -43,11 +44,11 @@ export class FileWatcher {
     });
 
     this.watcher.on('change', async (filePath) => {
-      console.log(`📝 文件变化: ${filePath}`);
+      console.log(`📝 File changed: ${filePath}`);
       await this.handleFileChange(filePath);
     });
 
-    console.log(`✅ 文件监听已启动，监听模式: ${patterns.join(', ')}`);
+    console.log(`✅ File watching started, patterns: ${patterns.join(', ')}`);
   }
 
   /**
@@ -59,6 +60,7 @@ export class FileWatcher {
     // 添加全局监听规则
     for (const rule of this.watchRules) {
       patterns.add(rule.pattern);
+      console.log(`📋 Adding global watch rule: ${rule.pattern}`);
     }
 
     // 添加插件的监听规则
@@ -66,17 +68,22 @@ export class FileWatcher {
       if (plugin.watchRules) {
         for (const rule of plugin.watchRules) {
           patterns.add(rule.pattern);
+          console.log(`🔌 Adding plugin watch rule: ${rule.pattern} (from plugin: ${plugin.name})`);
         }
       }
     }
 
     // 添加脚本文件监听
-    for (const platformConfig of Object.values(this.context.config.platforms)) {
+    for (const [platformId, platformConfig] of Object.entries(this.context.config.platforms)) {
       for (const script of platformConfig.scripts) {
-        patterns.add(script.path);
+        // 标准化路径，移除 ./ 前缀
+        const normalizedPath = script.path.replace(/^\.\//, '');
+        patterns.add(normalizedPath);
+        console.log(`📜 Adding script file watch: ${normalizedPath} (platform: ${platformId})`);
       }
     }
 
+    console.log(`🎯 Total collected ${patterns.size} watch patterns`);
     return Array.from(patterns);
   }
 
@@ -85,19 +92,22 @@ export class FileWatcher {
    */
   private async handleFileChange(filePath: string): Promise<void> {
     const fullPath = resolve(this.projectRoot, filePath);
+    console.log(`🔍 Processing file change: ${filePath} (full path: ${fullPath})`);
 
     // 查找匹配的规则
     const matchedRules = this.findMatchingRules(filePath);
+    console.log(`📏 Found ${matchedRules.length} matching rules`);
 
-    if (matchedRules.length === 0) {
-      // 默认行为：如果是脚本文件，则替换
+    if (matchedRules.length > 0) {
+      // 有匹配的规则，执行规则
+      for (const rule of matchedRules) {
+        console.log(`⚡ Executing rule: ${rule.action} (pattern: ${rule.pattern})`);
+        await this.executeRule(rule, filePath);
+      }
+    } else {
+      // 没有匹配的规则，检查是否为脚本文件（默认行为）
+      console.log(`🎯 No matching rules, checking if it's a script file`);
       await this.handleScriptFileChange(filePath);
-      return;
-    }
-
-    // 执行匹配的规则
-    for (const rule of matchedRules) {
-      await this.executeRule(rule, filePath);
     }
   }
 
@@ -159,7 +169,11 @@ export class FileWatcher {
 
     for (const [platformId, platformConfig] of Object.entries(this.context.config.platforms)) {
       for (const script of platformConfig.scripts) {
-        if (script.path === filePath) {
+        // 标准化路径进行比较，移除 ./ 前缀
+        const normalizedScriptPath = script.path.replace(/^\.\//, '');
+        const normalizedFilePath = filePath.replace(/^\.\//, '');
+        
+        if (normalizedScriptPath === normalizedFilePath) {
           affectedPlatforms.push(platformId);
           break;
         }
@@ -169,6 +183,8 @@ export class FileWatcher {
     if (affectedPlatforms.length > 0) {
       console.log(`🔄 替换脚本: ${filePath} (影响平台: ${affectedPlatforms.join(', ')})`);
       await this.replaceScript(filePath);
+    } else {
+      console.log(`⚠️  脚本文件 ${filePath} 没有被任何平台使用`);
     }
   }
 
@@ -186,7 +202,13 @@ export class FileWatcher {
   private async replaceScript(scriptPath: string): Promise<void> {
     for (const [platformId, page] of this.pageManager['pages']) {
       const platformConfig = this.context.config.platforms[platformId];
-      const script = platformConfig?.scripts.find(s => s.path === scriptPath);
+      
+      // 标准化路径进行比较
+      const normalizedScriptPath = scriptPath.replace(/^\.\//, '');
+      const script = platformConfig?.scripts.find(s => {
+        const normalizedConfigPath = s.path.replace(/^\.\//, '');
+        return normalizedConfigPath === normalizedScriptPath;
+      });
       
       if (script) {
         await this.context.scriptInjector.replaceScript(page, scriptPath, platformId);
@@ -195,17 +217,12 @@ export class FileWatcher {
   }
 
   /**
-   * 简单的模式匹配
+   * 使用 minimatch 进行 glob 模式匹配
    */
   private matchPattern(filePath: string, pattern: string): boolean {
-    // 简单的 glob 模式匹配，可以使用更复杂的库如 minimatch
-    const regex = new RegExp(
-      pattern
-        .replace(/\./g, '\\.')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.')
-    );
-    return regex.test(filePath);
+    const result = minimatch(filePath, pattern);
+    console.log(`🔍 Pattern matching: "${filePath}" vs "${pattern}" = ${result}`);
+    return result;
   }
 
   /**

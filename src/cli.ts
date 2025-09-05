@@ -22,12 +22,12 @@ program
       const configPath = resolve(options.root, options.config);
       
       if (!existsSync(configPath)) {
-        console.error(chalk.red(`❌ 配置文件不存在: ${configPath}`));
-        console.log(chalk.yellow('💡 请创建配置文件，参考文档或使用 init 命令'));
+        console.error(chalk.red(`❌ Config file does not exist: ${configPath}`));
+        console.log(chalk.yellow('💡 Please create a config file, refer to documentation or use init command'));
         process.exit(1);
       }
 
-      console.log(chalk.blue(`📖 加载配置文件: ${configPath}`));
+      console.log(chalk.blue(`📖 Loading config file: ${configPath}`));
       
       // 动态导入配置文件
       const configModule = await import(`file://${configPath}`);
@@ -38,7 +38,7 @@ program
       
       // 设置信号处理
       const gracefulShutdown = async (signal: string) => {
-        console.log(chalk.yellow(`\n🛑 收到 ${signal} 信号，正在关闭服务器...`));
+        console.log(chalk.yellow(`\n🛑 Received ${signal} signal, shutting down server...`));
         await server.stop();
         process.exit(0);
       };
@@ -48,10 +48,10 @@ program
 
       await server.start();
       
-      console.log(chalk.green('🎉 服务器启动成功！按 Ctrl+C 停止服务器'));
+      console.log(chalk.green('🎉 Server started successfully! Press Ctrl+C to stop the server'));
       
     } catch (error) {
-      console.error(chalk.red('❌ 启动失败:'), error);
+      console.error(chalk.red('❌ Startup failed:'), error);
       process.exit(1);
     }
   });
@@ -65,7 +65,7 @@ program
     const configPath = resolve(options.root, 'playwright-dev.config.js');
     
     if (existsSync(configPath)) {
-      console.log(chalk.yellow('⚠️  配置文件已存在，跳过创建'));
+      console.log(chalk.yellow('⚠️  Config file already exists, skipping creation'));
       return;
     }
 
@@ -113,10 +113,10 @@ export default defineConfig({
 
     try {
       await writeFile(configPath, configTemplate, 'utf-8');
-      console.log(chalk.green(`✅ 配置文件已创建: ${configPath}`));
-      console.log(chalk.blue('💡 请根据需要修改配置文件'));
+      console.log(chalk.green(`✅ Config file created: ${configPath}`));
+      console.log(chalk.blue('💡 Please modify the config file as needed'));
     } catch (error) {
-      console.error(chalk.red('❌ 创建配置文件失败:'), error);
+      console.error(chalk.red('❌ Failed to create config file:'), error);
       process.exit(1);
     }
   });
