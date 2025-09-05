@@ -14,9 +14,9 @@ program
 
 program
   .command('start')
-  .description('启动开发服务器')
-  .option('-c, --config <path>', '配置文件路径', 'playwright-dev.config.js')
-  .option('-r, --root <path>', '项目根目录', process.cwd())
+  .description('Start development server')
+  .option('-c, --config <path>', 'Config file path', 'playwright-dev.config.js')
+  .option('-r, --root <path>', 'Project root directory', process.cwd())
   .action(async (options) => {
     try {
       const configPath = resolve(options.root, options.config);
@@ -58,8 +58,8 @@ program
 
 program
   .command('init')
-  .description('初始化配置文件')
-  .option('-r, --root <path>', '项目根目录', process.cwd())
+  .description('Initialize configuration file')
+  .option('-r, --root <path>', 'Project root directory', process.cwd())
   .action(async (options) => {
     const { writeFile } = await import('fs/promises');
     const configPath = resolve(options.root, 'playwright-dev.config.js');

@@ -112,12 +112,12 @@ export class PlaywrightDevServer {
    */
   async injectScript(platformId: string, scriptPath: string): Promise<void> {
     if (!this.pageManager || !this.scriptInjector) {
-      throw new Error('服务器未启动');
+      throw new Error('Server not started');
     }
 
     const page = this.pageManager.getPage(platformId);
     if (!page) {
-      throw new Error(`平台 ${platformId} 未找到`);
+      throw new Error(`Platform ${platformId} not found`);
     }
 
     return await this.scriptInjector.injectScript(page, scriptPath, platformId);
@@ -128,7 +128,7 @@ export class PlaywrightDevServer {
    */
   async navigatePage(platformId: string, url: string): Promise<void> {
     if (!this.pageManager) {
-      throw new Error('服务器未启动');
+      throw new Error('Server not started');
     }
 
     return await this.pageManager.navigatePage(platformId, url);
@@ -150,7 +150,7 @@ export class PlaywrightDevServer {
    */
   async reloadScripts(): Promise<void> {
     if (!this.pageManager) {
-      throw new Error('服务器未启动');
+      throw new Error('Server not started');
     }
 
     return await this.pageManager.reloadAllScripts();

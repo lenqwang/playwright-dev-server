@@ -181,10 +181,10 @@ export class FileWatcher {
     }
 
     if (affectedPlatforms.length > 0) {
-      console.log(`🔄 替换脚本: ${filePath} (影响平台: ${affectedPlatforms.join(', ')})`);
+      console.log(`🔄 Replacing script: ${filePath} (affected platforms: ${affectedPlatforms.join(', ')})`);
       await this.replaceScript(filePath);
     } else {
-      console.log(`⚠️  脚本文件 ${filePath} 没有被任何平台使用`);
+      console.log(`⚠️  Script file ${filePath} is not used by any platform`);
     }
   }
 
@@ -192,7 +192,7 @@ export class FileWatcher {
    * 重新加载所有页面
    */
   private async reloadAllPages(): Promise<void> {
-    console.log('🔄 重新加载所有页面...');
+    console.log('🔄 Reloading all pages...');
     await this.pageManager.reloadAllScripts();
   }
 
@@ -232,7 +232,7 @@ export class FileWatcher {
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = null;
-      console.log('🛑 文件监听已停止');
+      console.log('🛑 File watching stopped');
     }
   }
 }

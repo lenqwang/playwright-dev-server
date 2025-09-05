@@ -1,3 +1,3 @@
-console.log('Common script loaded - 测试规则匹配');
-document.body.style.backgroundColor = '#e6ffe6';
-console.log('🎯 脚本已更新，应该触发 replace 规则');
+console.log('Common script loaded - version 1.0');
+document.body.style.border = '3px solid #007acc';
+console.log('🎯 Script loaded successfully - should trigger REPLACE rule');

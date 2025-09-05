@@ -5,7 +5,7 @@ export default defineConfig({
     // 示例平台 1: 本地开发页面
     local: {
       name: 'Local Development',
-      url: 'https://www.baidu.com',
+      url: 'file://' + process.cwd() + '/test.html',
       scripts: [
         {
           path: './scripts/common.js',
@@ -13,13 +13,8 @@ export default defineConfig({
           autoInject: true,
         },
         {
-          path: './scripts/dev-tools.js',
-          order: 2,
-          autoInject: true,
-        },
-        {
           path: './config/reload.js',
-          order: 3,
+          order: 2,
           autoInject: true,
         }
       ],
