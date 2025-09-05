@@ -44,31 +44,13 @@ export default defineConfig({
     {
       pattern: "config/**/*.js",
       action: "reload", // 配置文件变化时重载页面
-    },
-    {
-      pattern: "assets/**/*.css",
-      action: "custom",
-      async handler(filePath, page, context) {
-        // 自定义 CSS 热重载逻辑
-        console.log(`🎨 CSS file changed: ${filePath}`);
-        await page.evaluate(() => {
-          // 刷新所有样式表
-          document
-            .querySelectorAll('link[rel="stylesheet"]')
-            .forEach((link) => {
-              const href = link.href;
-              link.href = href.includes("?") ? href.replace(/\?.*/, "") : href;
-              link.href += "?t=" + Date.now();
-            });
-        });
-      },
-    },
+    }
   ],
 
   // 插件配置
   plugins: [
     consoleLoggerPlugin,
-    autoReloadPlugin,
+    // autoReloadPlugin,
 
     // 自定义插件示例
     {
