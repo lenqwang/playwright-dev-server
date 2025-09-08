@@ -1,0 +1,100 @@
+import { 
+  defineConfig, 
+  consoleLoggerPlugin, 
+  autoReloadPlugin,
+  scriptInjectionPlugin,
+  styleInjectionPlugin 
+} from 'playwright-dev-server';
+
+export default defineConfig({
+  platforms: {
+    {{#each platformsArray}}
+    {{key}}: {
+      name: '{{name}}',
+      url: '{{url}}',
+      {{#if scripts}}
+      scripts: [
+        {{#each scripts}}
+        {
+          path: '{{path}}',
+          order: {{order}},
+          autoInject: {{autoInject}},
+        }{{#unless @last}},{{/unless}}
+        {{/each}}
+      ],
+      {{/if}}
+      {{#if styles}}
+      styles: [
+        {{#each styles}}
+        {
+          path: '{{path}}',
+          order: {{order}},
+          autoInject: {{autoInject}},
+        }{{#unless @last}},{{/unless}}
+        {{/each}}
+      ],
+      {{/if}}
+      {{#if browserOptions}}
+      browserOptions: {
+        {{#if browserOptions.viewport}}
+        viewport: { width: {{browserOptions.viewport.width}}, height: {{browserOptions.viewport.height}} },
+        {{/if}}
+        headless: false,
+        devtools: true,
+      }
+      {{/if}}
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  },
+  
+  plugins: [
+    // 核心插件
+    consoleLoggerPlugin(),
+    autoReloadPlugin(),
+    scriptInjectionPlugin(),
+    styleInjectionPlugin(),
+    
+    // 性能监控插件
+    {
+      name: 'performance-monitor',
+      order: 50,
+      
+      async platformReady(platformId, page) {
+        await page.addScriptTag({
+          content: `
+            window.addEventListener('load', () => {
+              const perfData = performance.getEntriesByType('navigation')[0];
+              console.log('[' + platformId + '] Page Load Performance:', {
+                domContentLoaded: perfData.domContentLoadedEventEnd - perfData.domContentLoadedEventStart,
+                loadComplete: perfData.loadEventEnd - perfData.loadEventStart,
+                totalTime: perfData.loadEventEnd - perfData.fetchStart
+              });
+            });
+          `
+        });
+      }
+    },
+    
+    // 错误监控插件
+    {
+      name: 'error-monitor',
+      order: 60,
+      
+      async platformCreated(platformId, page) {
+        page.on('pageerror', (error) => {
+          console.error('[' + platformId + '] Page Error:', error.message);
+        });
+        
+        page.on('requestfailed', (request) => {
+          console.error('[' + platformId + '] Request Failed:', request.url());
+        });
+      }
+    }
+  ],
+  
+  browserOptions: {
+    headless: {{browserOptions.headless}},
+    devtools: {{browserOptions.devtools}},
+    slowMo: 100, // 减慢操作速度便于调试
+  }
+});

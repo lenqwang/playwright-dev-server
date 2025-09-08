@@ -1,205 +1,257 @@
 # Playwright Dev Server
 
-一个基于 Playwright 的开发服务器，用于向网页注入脚本并提供热重载功能。
+A plugin-based development server for injecting scripts and styles into web pages using Playwright. Inspired by Vite's architecture, it provides a flexible and extensible platform for web development automation.
 
-## 特性
+## Features
 
-- 🚀 基于 Playwright 的无头浏览器自动化
-- 📝 脚本自动注入和热重载
-- 🔌 插件系统，支持自定义行为
-- 👀 文件监听，支持多种重载策略
-- 🎯 多平台支持，可同时操作多个页面
-- ⚙️ 类似 Vite 的配置系统
+- 🔌 **Plugin-based Architecture**: Extensible plugin system similar to Vite
+- 🎯 **Multi-platform Support**: Manage multiple browser instances with different configurations
+- 🔄 **Hot Reload**: Automatic script and style injection with file watching
+- 📝 **Event-driven**: Rich event system for plugin communication
+- 🎨 **Built-in Plugins**: Console logging, auto-reload, script/style injection
+- ⚡ **Fast Development**: Optimized for rapid development workflows
 
-## 安装
+## Quick Start
+
+### Installation
 
 ```bash
 npm install playwright-dev-server
-# 或
-pnpm add playwright-dev-server
 ```
 
-## 快速开始
-
-### 1. 初始化配置
+### Initialize Configuration
 
 ```bash
 npx playwright-dev init
 ```
 
-### 2. 编辑配置文件
+This creates a `playwright-dev.config.js` file with example configuration.
 
-```javascript
-// playwright-dev.config.js
-import { defineConfig } from 'playwright-dev-server';
-
-export default defineConfig({
-  platforms: {
-    mysite: {
-      name: 'My Website',
-      url: 'https://example.com',
-      scripts: [
-        {
-          path: './scripts/main.js',
-          order: 1,
-          autoInject: true,
-        }
-      ]
-    }
-  },
-  
-  watchRules: [
-    {
-      pattern: 'scripts/**/*.js',
-      action: 'replace'
-    }
-  ]
-});
-```
-
-### 3. 启动开发服务器
+### Start Development Server
 
 ```bash
 npx playwright-dev start
 ```
 
-## 配置选项
+## Configuration
 
-### 平台配置 (PlatformConfig)
-
-```typescript
-interface PlatformConfig {
-  name: string;                    // 平台名称
-  url: string;                     // 初始URL
-  scripts: ScriptConfig[];         // 脚本列表
-  browserOptions?: {               // 浏览器选项
-    headless?: boolean;
-    devtools?: boolean;
-    viewport?: { width: number; height: number };
-  };
-}
-```
-
-### 脚本配置 (ScriptConfig)
-
-```typescript
-interface ScriptConfig {
-  path: string;        // 脚本文件路径
-  order?: number;      // 注入顺序
-  autoInject?: boolean; // 是否自动注入
-}
-```
-
-### 文件监听规则 (FileWatchRule)
-
-```typescript
-interface FileWatchRule {
-  pattern: string;     // 文件匹配模式
-  action: 'reload' | 'replace' | 'custom'; // 行为类型
-  handler?: (filePath: string, page: Page, context: PluginContext) => Promise<void>;
-}
-```
-
-## 插件系统
-
-### 使用内置插件
+### Basic Configuration
 
 ```javascript
 import { defineConfig, consoleLoggerPlugin, autoReloadPlugin } from 'playwright-dev-server';
 
 export default defineConfig({
-  plugins: [
-    consoleLoggerPlugin,
-    autoReloadPlugin,
-  ],
-  // ...其他配置
-});
-```
-
-### 创建自定义插件
-
-```javascript
-const myPlugin = {
-  name: 'my-plugin',
-  
-  async setup(context) {
-    console.log('插件初始化');
-  },
-  
-  async onPageLoad(page, platformId, context) {
-    console.log(\`页面加载: \${platformId}\`);
-  },
-  
-  watchRules: [
-    {
-      pattern: '**/*.json',
-      action: 'custom',
-      async handler(filePath, page, context) {
-        // 自定义处理逻辑
-        console.log(\`JSON 文件变化: \${filePath}\`);
+  platforms: {
+    myApp: {
+      name: 'My Application',
+      url: 'http://localhost:3000',
+      scripts: [
+        {
+          path: './scripts/debug.js',
+          order: 1,
+          autoInject: true,
+        }
+      ],
+      styles: [
+        {
+          path: './styles/debug.css',
+          order: 1,
+          autoInject: true,
+        }
+      ],
+      browserOptions: {
+        viewport: { width: 1280, height: 720 }
       }
     }
-  ]
-};
-```
-
-## 编程接口
-
-除了 CLI 工具，你也可以在代码中直接使用：
-
-```javascript
-import { PlaywrightDevServer, defineConfig } from 'playwright-dev-server';
-
-const config = defineConfig({
-  platforms: {
-    test: {
-      name: 'Test Site',
-      url: 'https://example.com',
-      scripts: [{ path: './test.js' }]
-    }
+  },
+  
+  plugins: [
+    consoleLoggerPlugin(),
+    autoReloadPlugin(),
+  ],
+  
+  browserOptions: {
+    headless: false,
+    devtools: true,
   }
 });
-
-const server = new PlaywrightDevServer(config);
-
-// 启动服务器
-await server.start();
-
-// 手动注入脚本
-await server.injectScript('test', './custom.js');
-
-// 导航页面
-await server.navigatePage('test', 'https://another-url.com');
-
-// 停止服务器
-await server.stop();
 ```
 
-## API 参考
+## Plugin System
+
+### Built-in Plugins
+
+#### Console Logger Plugin
+Captures and displays browser console output in your terminal.
+
+```javascript
+import { consoleLoggerPlugin } from 'playwright-dev-server';
+
+export default defineConfig({
+  plugins: [
+    consoleLoggerPlugin()
+  ]
+});
+```
+
+#### Auto Reload Plugin
+Automatically reloads pages when HTML/CSS files change, with CSS hot-reload support.
+
+```javascript
+import { autoReloadPlugin } from 'playwright-dev-server';
+
+export default defineConfig({
+  plugins: [
+    autoReloadPlugin()
+  ]
+});
+```
+
+### Creating Custom Plugins
+
+Plugins are functions that return plugin objects with lifecycle hooks:
+
+```javascript
+function myCustomPlugin() {
+  return {
+    name: 'my-custom-plugin',
+    order: 100, // Execution order (lower = earlier)
+    
+    // Server lifecycle
+    buildStart() {
+      console.log('Server starting...');
+    },
+    
+    buildEnd() {
+      console.log('Server started!');
+    },
+    
+    // Platform lifecycle
+    platformCreated(platformId, page) {
+      console.log(`Platform ${platformId} created`);
+    },
+    
+    platformReady(platformId, page) {
+      console.log(`Platform ${platformId} ready`);
+    },
+    
+    // File watching
+    fileChanged(filePath, event) {
+      console.log(`File ${filePath} was ${event}`);
+    },
+    
+    // Content transformation
+    transformScript(code, scriptPath, platformId) {
+      // Modify script content before injection
+      return `console.log('Loading ${scriptPath}');\n${code}`;
+    },
+    
+    transformStyle(code, stylePath, platformId) {
+      // Modify style content before injection
+      return `/* ${stylePath} */\n${code}`;
+    }
+  };
+}
+```
+
+### Plugin Hooks
+
+- **buildStart**: Called when server starts
+- **buildEnd**: Called when server is ready
+- **platformCreated**: Called when a platform page is created
+- **platformReady**: Called when a platform page is ready for interaction
+- **fileChanged**: Called when watched files change
+- **transformScript**: Transform script content before injection
+- **transformStyle**: Transform style content before injection
+
+### Event System
+
+Plugins can listen to and emit events:
+
+```javascript
+function eventListenerPlugin() {
+  return {
+    name: 'event-listener',
+    
+    buildStart() {
+      // Listen to events
+      this.on('platform:ready', ({ platformId, page }) => {
+        console.log(`Platform ${platformId} is ready!`);
+      });
+      
+      // Emit custom events
+      this.emit('custom:event', { data: 'hello' });
+    }
+  };
+}
+```
+
+## API Reference
 
 ### PlaywrightDevServer
 
-#### 方法
+```javascript
+import { PlaywrightDevServer } from 'playwright-dev-server';
 
-- `start()`: 启动服务器
-- `stop()`: 停止服务器
-- `injectScript(platformId, scriptPath)`: 手动注入脚本
-- `navigatePage(platformId, url)`: 导航页面
-- `reloadScripts()`: 重新加载所有脚本
-- `getPageList()`: 获取页面列表
-- `getConfig()`: 获取配置
-- `updateConfig(newConfig)`: 更新配置
+const server = new PlaywrightDevServer(config);
 
-## 内置插件
+// Start server
+await server.start();
 
-### consoleLoggerPlugin
+// Navigate platform
+await server.navigatePage('myApp', 'http://localhost:3001');
 
-监听页面控制台输出并打印到终端。
+// Inject script manually
+await server.injectScript('myApp', './scripts/test.js');
 
-### autoReloadPlugin
+// Get page list
+const pages = await server.getPageList();
 
-当 HTML 或 CSS 文件变化时自动重载页面，CSS 文件支持热重载。
+// Stop server
+await server.stop();
+```
 
-## 许可证
+## Examples
+
+### Performance Monitoring Plugin
+
+```javascript
+function performancePlugin() {
+  return {
+    name: 'performance-monitor',
+    
+    async platformReady(platformId, page) {
+      await page.addScriptTag({
+        content: `
+          window.addEventListener('load', () => {
+            const perfData = performance.getEntriesByType('navigation')[0];
+            console.log('Page Load Time:', perfData.loadEventEnd - perfData.fetchStart);
+          });
+        `
+      });
+    }
+  };
+}
+```
+
+### Auto Screenshot Plugin
+
+```javascript
+function autoScreenshotPlugin(options = {}) {
+  return {
+    name: 'auto-screenshot',
+    
+    async platformCreated(platformId, page) {
+      page.on('pageerror', async () => {
+        const filename = `error-${platformId}-${Date.now()}.png`;
+        await page.screenshot({ path: filename });
+        console.log(`Screenshot saved: ${filename}`);
+      });
+    }
+  };
+}
+```
+
+## License
 
 MIT

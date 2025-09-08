@@ -8,9 +8,14 @@
   },
   "type": "module",
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "npm run clean && tsc && npm run copy-templates && npm run fix-cli-shebang",
+    "clean": "node scripts/clean.js",
+    "copy-templates": "node scripts/copy-templates.js",
+    "fix-cli-shebang": "node scripts/fix-cli-shebang.js",
+    "dev": "tsc --watch",
     "test": "vitest",
+    "test:build": "node test-build.js",
+    "test:tsc": "node test-tsc-build.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -26,17 +31,19 @@
     "chalk": "^5.3.0",
     "chokidar": "^4.0.3",
     "commander": "^14.0.0",
+    "handlebars": "^4.7.8",
     "minimatch": "^10.0.3",
     "playwright": "^1.40.0"
   },
   "devDependencies": {
+    "@types/handlebars": "^4.1.0",
     "@types/node": "^24.3.1",
-    "tsup": "^8.5.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
   "files": [
     "dist",
+    "templates",
     "README.md"
   ]
 }

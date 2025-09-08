@@ -15,6 +15,5 @@ export const defaultConfig: Partial<DevServerConfig> = {
     headless: false,
     devtools: true,
   },
-  watchRules: [],
   plugins: [],
 };

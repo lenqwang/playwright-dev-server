@@ -1,134 +1,164 @@
-import { resolve } from 'path';
-import type { DevServerConfig, PluginContext } from './types.js';
-import { PlaywrightManager } from './core/PlaywrightManager.js';
-import { ScriptInjector } from './core/ScriptInjector.js';
-import { StyleInjector } from './core/StyleInjector.js';
-import { PageManager } from './core/PageManager.js';
-import { FileWatcher } from './core/FileWatcher.js';
-import { defaultConfig } from './config.js';
+import { resolve } from "path";
+import type { DevServerConfig, PluginOption } from "./types.js";
+import { PlaywrightManager } from "./core/PlaywrightManager.js";
+import { PageManager } from "./core/PageManager.js";
+import { FileWatcher } from "./core/FileWatcher.js";
+import { EventEmitter } from "./core/EventEmitter.js";
+import { PluginManager } from "./core/PluginManager.js";
+import {
+  scriptInjectionPlugin,
+  extendContextWithScriptInjection,
+} from "./plugins/scriptInjection.js";
+import {
+  styleInjectionPlugin,
+  extendContextWithStyleInjection,
+} from "./plugins/styleInjection.js";
 
+/**
+ * Playwright 开发服务器 - 基于插件的架构
+ */
 export class PlaywrightDevServer {
   private projectRoot: string;
   private config: DevServerConfig;
+  private eventEmitter: EventEmitter;
   private playwrightManager: PlaywrightManager;
-  private scriptInjector: ScriptInjector | null = null;
-  private styleInjector: StyleInjector | null = null;
   private pageManager: PageManager | null = null;
   private fileWatcher: FileWatcher | null = null;
-  private context: PluginContext;
+  private pluginManager: PluginManager;
+  private isStarted = false;
 
   constructor(config: DevServerConfig, projectRoot?: string) {
-    this.projectRoot = projectRoot || process.cwd();
-    this.config = { ...defaultConfig, ...config };
+    this.projectRoot = resolve(projectRoot || config.root || process.cwd());
+    this.config = config;
+    this.eventEmitter = new EventEmitter();
     this.playwrightManager = new PlaywrightManager();
-    
-    // 创建插件上下文
-    this.context = {
-      projectRoot: this.projectRoot,
-      config: this.config,
-      pageManager: null as any, // 稍后设置
-      scriptInjector: null as any, // 稍后设置
-      styleInjector: null as any, // 稍后设置
-    };
+    this.pluginManager = new PluginManager(
+      this.config,
+      this.eventEmitter,
+      this.projectRoot
+    );
+
+    console.log(`📁 Project root: ${this.projectRoot}`);
   }
 
   /**
    * 启动开发服务器
    */
   async start(): Promise<this> {
+    if (this.isStarted) {
+      console.warn("⚠️  Server is already started");
+      return this;
+    }
+
     try {
-      console.log('🚀 Starting Playwright development server...');
-      
+      console.log("🚀 Starting Playwright Dev Server...");
+
       // 1. 初始化 Playwright
       await this.playwrightManager.initialize(this.config);
-      
-      // 2. 初始化脚本注入器
-      this.scriptInjector = new ScriptInjector(this.projectRoot, this.context);
-      this.context.scriptInjector = this.scriptInjector;
-      
-      // 3. 初始化样式注入器
-      this.styleInjector = new StyleInjector(this.projectRoot, this.context);
-      this.context.styleInjector = this.styleInjector;
-      
-      // 4. 初始化页面管理器
+
+      // 2. 创建页面管理器
       this.pageManager = new PageManager(
         this.playwrightManager,
-        this.scriptInjector,
-        this.styleInjector,
         this.config,
-        this.context
+        this.eventEmitter
       );
-      this.context.pageManager = this.pageManager;
-      
-      // 4. 初始化插件
-      await this.initializePlugins();
-      
-      // 5. 启动平台页面
+
+      // 3. 创建文件监听器
+      this.fileWatcher = new FileWatcher(
+        this.projectRoot,
+        this.config,
+        this.eventEmitter
+      );
+
+      // 4. 加载插件（包括内置插件）
+      await this.loadPlugins();
+
+      // 5. 更新插件上下文，注入页面管理器方法
+      this.updatePluginContext();
+
+      // 6. 执行插件的 buildStart 钩子
+      await this.pluginManager.executeHook("buildStart");
+
+      // 7. 发射服务器启动事件
+      await this.eventEmitter.emit("server:start", { config: this.config });
+
+      // 8. 启动所有平台页面
       await this.pageManager.launchPlatformPages();
-      
-      // 6. 设置文件监控
-      this.setupFileWatcher();
-      
-      console.log('✅ Playwright development server is ready!');
-      console.log('📱 Supported platforms:', Object.keys(this.config.platforms).join(', '));
-      
+
+      // 9. 启动文件监听
+      const watchPatterns = this.pluginManager.getWatchPatterns();
+      this.fileWatcher.startWatching(watchPatterns);
+
+      // 10. 执行插件的 buildEnd 钩子
+      await this.pluginManager.executeHook("buildEnd");
+
+      this.isStarted = true;
+      console.log("✅ Playwright Dev Server started successfully!");
+
       return this;
     } catch (error) {
-      console.error('❌ Failed to start development server:', error);
+      console.error("❌ Failed to start server:", error);
+      await this.stop();
       throw error;
     }
   }
 
   /**
-   * 初始化插件
+   * 加载插件
    */
-  private async initializePlugins(): Promise<void> {
-    if (!this.config.plugins) return;
+  private async loadPlugins(): Promise<void> {
+    const plugins: PluginOption[] = [
+      // 内置插件
+      scriptInjectionPlugin(),
+      styleInjectionPlugin(),
+      // 用户插件
+      ...(this.config.plugins || []),
+    ];
 
-    console.log('🔌 Initializing plugins...');
-    
-    for (const plugin of this.config.plugins) {
-      try {
-        if (plugin.setup) {
-          await plugin.setup(this.context);
-        }
-        console.log(`✅ Plugin initialization completed: ${plugin.name}`);
-      } catch (error) {
-        console.error(`❌ Plugin initialization failed: ${plugin.name}`, error);
-      }
-    }
+    await this.pluginManager.loadPlugins(plugins);
   }
 
   /**
-   * 设置文件监控
+   * 更新插件上下文
    */
-  private setupFileWatcher(): void {
-    const watchRules = this.config.watchRules || [];
-    
-    this.fileWatcher = new FileWatcher(
-      this.projectRoot,
-      this.pageManager!,
-      this.context,
-      watchRules
-    );
-    
-    this.fileWatcher.startWatching();
+  private updatePluginContext(): void {
+    const context = this.pluginManager.getContext();
+
+    // 注入页面管理器方法
+    context.getPage = (platformId: string) => {
+      return this.pageManager?.getPage(platformId);
+    };
+
+    context.getPages = () => {
+      return this.pageManager?.getPages() || new Map();
+    };
+
+    // 扩展上下文，添加脚本和样式注入方法
+    extendContextWithScriptInjection(context);
+    extendContextWithStyleInjection(context);
+
+    // 添加转换钩子执行方法
+    (context as any).executeTransformHook =
+      this.pluginManager.executeTransformHook.bind(this.pluginManager);
+
+    this.pluginManager.updateContext(context);
   }
 
   /**
    * 手动注入脚本到指定平台
    */
   async injectScript(platformId: string, scriptPath: string): Promise<void> {
-    if (!this.pageManager || !this.scriptInjector) {
-      throw new Error('Server not started');
+    if (!this.isStarted) {
+      throw new Error("Server is not started");
     }
 
-    const page = this.pageManager.getPage(platformId);
+    const page = this.pageManager?.getPage(platformId);
     if (!page) {
       throw new Error(`Platform ${platformId} not found`);
     }
 
-    return await this.scriptInjector.injectScript(page, scriptPath, platformId);
+    const context = this.pluginManager.getContext();
+    await (context as any).injectScript(platformId, page, { path: scriptPath });
   }
 
   /**
@@ -136,32 +166,23 @@ export class PlaywrightDevServer {
    */
   async navigatePage(platformId: string, url: string): Promise<void> {
     if (!this.pageManager) {
-      throw new Error('Server not started');
+      throw new Error("Server is not started");
     }
 
-    return await this.pageManager.navigatePage(platformId, url);
+    await this.pageManager.navigatePage(platformId, url);
   }
 
   /**
    * 获取页面列表
    */
-  getPageList(): Array<{ platformId: string; url: string; title: string }> {
+  async getPageList(): Promise<
+    Array<{ platformId: string; url: string; title: string }>
+  > {
     if (!this.pageManager) {
       return [];
     }
 
-    return this.pageManager.getPageList();
-  }
-
-  /**
-   * 重新加载脚本
-   */
-  async reloadScripts(): Promise<void> {
-    if (!this.pageManager) {
-      throw new Error('Server not started');
-    }
-
-    return await this.pageManager.reloadAllScripts();
+    return await this.pageManager.getPageList();
   }
 
   /**
@@ -176,37 +197,45 @@ export class PlaywrightDevServer {
    */
   updateConfig(newConfig: Partial<DevServerConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    
-    if (this.pageManager) {
-      this.pageManager.updateConfig(this.config);
-    }
+    this.pageManager?.updateConfig(this.config);
   }
 
   /**
    * 停止服务器
    */
   async stop(): Promise<void> {
-    console.log('🛑 Shutting down Playwright development server...');
-    
+    if (!this.isStarted) {
+      return;
+    }
+
     try {
-      // 停止文件监控
+      console.log("🛑 Stopping Playwright Dev Server...");
+
+      // 发射服务器停止事件
+      await this.eventEmitter.emit("server:stop", {});
+
+      // 停止文件监听
       if (this.fileWatcher) {
         await this.fileWatcher.stopWatching();
+        this.fileWatcher = null;
       }
-      
+
       // 关闭所有页面
       if (this.pageManager) {
         await this.pageManager.closeAllPages();
+        this.pageManager = null;
       }
-      
-      // 关闭浏览器
-      if (this.playwrightManager) {
-        await this.playwrightManager.close();
-      }
-      
-      console.log('🛑 Playwright development server stopped');
+
+      // 关闭 Playwright
+      await this.playwrightManager.close();
+
+      // 清理事件监听器
+      this.eventEmitter.removeAllListeners();
+
+      this.isStarted = false;
+      console.log("✅ Playwright Dev Server stopped");
     } catch (error) {
-      console.error('❌ Error occurred while shutting down development server:', error);
+      console.error("❌ Error stopping server:", error);
     }
   }
 }

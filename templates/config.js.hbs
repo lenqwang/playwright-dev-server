@@ -1,0 +1,94 @@
+import { defineConfig, consoleLoggerPlugin, autoReloadPlugin } from 'playwright-dev-server';
+
+export default defineConfig({
+  platforms: {
+    {{#each platformsArray}}
+    {{key}}: {
+      name: '{{name}}',
+      url: '{{url}}',
+      {{#if scripts}}
+      scripts: [
+        {{#each scripts}}
+        {
+          path: '{{path}}',
+          order: {{order}},
+          autoInject: {{autoInject}},
+          {{#if reloadOnChange}}
+          reloadOnChange: {{reloadOnChange}},
+          {{/if}}
+        }{{#unless @last}},{{/unless}}
+        {{/each}}
+      ],
+      {{/if}}
+      {{#if styles}}
+      styles: [
+        {{#each styles}}
+        {
+          path: '{{path}}',
+          order: {{order}},
+          autoInject: {{autoInject}},
+          {{#if reloadOnChange}}
+          reloadOnChange: {{reloadOnChange}},
+          {{/if}}
+        }{{#unless @last}},{{/unless}}
+        {{/each}}
+      ],
+      {{/if}}
+      {{#if contextOptions}}
+      contextOptions: {
+        {{#if contextOptions.viewport}}
+        viewport: { width: {{contextOptions.viewport.width}}, height: {{contextOptions.viewport.height}} },
+        {{/if}}
+        {{#if contextOptions.userAgent}}
+        userAgent: '{{contextOptions.userAgent}}',
+        {{/if}}
+        {{#if contextOptions.locale}}
+        locale: '{{contextOptions.locale}}',
+        {{/if}}
+        {{#if contextOptions.colorScheme}}
+        colorScheme: '{{contextOptions.colorScheme}}',
+        {{/if}}
+        {{#if contextOptions.isMobile}}
+        isMobile: {{contextOptions.isMobile}},
+        {{/if}}
+        {{#if contextOptions.hasTouch}}
+        hasTouch: {{contextOptions.hasTouch}},
+        {{/if}}
+      },
+      {{/if}}
+      {{#if browserOptions}}
+      // 已废弃：请使用 contextOptions 替代
+      browserOptions: {
+        {{#if browserOptions.viewport}}
+        viewport: { width: {{browserOptions.viewport.width}}, height: {{browserOptions.viewport.height}} }
+        {{/if}}
+      },
+      {{/if}}
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  },
+  
+  plugins: [
+    // 内置插件
+    {{#each builtinPlugins}}
+    {{this}}(){{#unless @last}},{{/unless}}
+    {{/each}}
+    
+    // 自定义插件示例
+    // {
+    //   name: 'my-custom-plugin',
+    //   order: 100,
+    //   platformReady(platformId, page) {
+    //     console.log(`Platform ${platformId} is ready!`);
+    //   },
+    //   fileChanged(filePath, event) {
+    //     console.log(`File ${filePath} was ${event}`);
+    //   }
+    // }
+  ],
+  
+  browserOptions: {
+    headless: {{browserOptions.headless}},
+    devtools: {{browserOptions.devtools}},
+  }
+});

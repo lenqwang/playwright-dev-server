@@ -1,84 +1,70 @@
-import type { Page } from "playwright";
-import type {
-  DevServerConfig,
-  PlatformConfig,
-  PluginContext,
-} from "../types.js";
-import { PlaywrightManager } from "./PlaywrightManager.js";
-import { ScriptInjector } from "./ScriptInjector.js";
-import { StyleInjector } from "./StyleInjector.js";
+import type { Page, BrowserContext } from 'playwright';
+import type { DevServerConfig } from '../types.js';
+import { PlaywrightManager } from './PlaywrightManager.js';
+import { EventEmitter } from './EventEmitter.js';
 
+/**
+ * 页面管理器 - 负责管理所有平台的页面实例
+ */
 export class PageManager {
   private pages: Map<string, Page> = new Map();
-  private playwrightManager: PlaywrightManager;
-  private scriptInjector: ScriptInjector;
-  private styleInjector: StyleInjector;
-  private config: DevServerConfig;
-  private context: PluginContext;
+  private contexts: Map<string, BrowserContext> = new Map();
 
   constructor(
-    playwrightManager: PlaywrightManager,
-    scriptInjector: ScriptInjector,
-    styleInjector: StyleInjector,
-    config: DevServerConfig,
-    context: PluginContext
-  ) {
-    this.playwrightManager = playwrightManager;
-    this.scriptInjector = scriptInjector;
-    this.styleInjector = styleInjector;
-    this.config = config;
-    this.context = context;
-  }
+    private playwrightManager: PlaywrightManager,
+    private config: DevServerConfig,
+    private eventEmitter: EventEmitter
+  ) {}
 
   /**
    * 启动所有平台页面
    */
   async launchPlatformPages(): Promise<void> {
-    const browserContext = this.playwrightManager.getContext();
-
-    for (const [platformId, platformConfig] of Object.entries(
-      this.config.platforms
-    )) {
-      console.log(`🌐 Starting platform page: ${platformConfig.name} (${platformId})`);
-
-      const page = await browserContext.newPage();
-
-      // 设置视口
-      if (platformConfig.browserOptions?.viewport) {
-        await page.setViewportSize(platformConfig.browserOptions.viewport);
-      }
-
-      // 导航到目标URL
-      await page.goto(platformConfig.url);
-
-      // 等待页面加载
-      await page.waitForLoadState("domcontentloaded");
-
-      // 执行插件的 onPageLoad 钩子
-      for (const plugin of this.config.plugins || []) {
-        if (plugin.onPageLoad) {
-          await plugin.onPageLoad(page, platformId, this.context);
+    const platformEntries = Object.entries(this.config.platforms);
+    
+    for (const [platformId, platformConfig] of platformEntries) {
+      try {
+        console.log(`🚀 Launching platform: ${platformConfig.name} (${platformId})`);
+        
+        // 创建浏览器上下文
+        let contextOptions = platformConfig.contextOptions || {};
+        
+        // 向后兼容：如果使用了旧的 browserOptions，转换为新的 contextOptions
+        if (platformConfig.browserOptions) {
+          console.warn(`⚠️  browserOptions is deprecated for platform ${platformId}, please use contextOptions instead`);
+          if (platformConfig.browserOptions.viewport) {
+            contextOptions.viewport = platformConfig.browserOptions.viewport;
+          }
         }
-      }
+        
+        const context = await this.playwrightManager.createContext(contextOptions);
+        
+        this.contexts.set(platformId, context);
 
-      // 注入样式
-      if (platformConfig.styles && platformConfig.styles.length > 0) {
-        await this.styleInjector.injectStyles(
+        // 创建页面
+        const page = await context.newPage();
+        this.pages.set(platformId, page);
+
+        // 发射平台创建事件
+        await this.eventEmitter.emit('platform:created', {
+          platformId,
           page,
-          platformConfig.styles,
-          platformId
-        );
+          context
+        });
+
+        // 导航到初始URL
+        await page.goto(platformConfig.url);
+
+        // 发射平台准备就绪事件
+        await this.eventEmitter.emit('platform:ready', {
+          platformId,
+          page
+        });
+
+        console.log(`✅ Platform ready: ${platformConfig.name} (${platformId})`);
+      } catch (error) {
+        console.error(`❌ Failed to launch platform ${platformId}:`, error);
       }
-
-      // 注入脚本
-      await this.scriptInjector.injectScripts(
-        page,
-        platformConfig.scripts,
-        platformId
-      );
-
-      this.pages.set(platformId, page);
-      console.log(`✅ Platform page startup completed: ${platformConfig.name}`);
     }
   }
 
@@ -90,83 +76,50 @@ export class PageManager {
   }
 
   /**
+   * 获取所有页面
+   */
+  getPages(): Map<string, Page> {
+    return new Map(this.pages);
+  }
+
+  /**
    * 获取所有页面列表
    */
-  getPageList(): Array<{ platformId: string; url: string; title: string }> {
-    const result: Array<{ platformId: string; url: string; title: string }> =
-      [];
-
+  async getPageList(): Promise<Array<{ platformId: string; url: string; title: string }>> {
+    const list: Array<{ platformId: string; url: string; title: string }> = [];
+    
     for (const [platformId, page] of this.pages) {
-      result.push({
-        platformId,
-        url: page.url(),
-        title: "", // 可以异步获取 page.title()
-      });
+      try {
+        const url = page.url();
+        const title = await page.title();
+        list.push({ platformId, url, title });
+      } catch (error) {
+        console.error(`Failed to get page info for ${platformId}:`, error);
+      }
     }
-
-    return result;
+    
+    return list;
   }
 
   /**
    * 导航页面到指定URL
    */
   async navigatePage(platformId: string, url: string): Promise<void> {
-    const page = this.getPage(platformId);
+    const page = this.pages.get(platformId);
     if (!page) {
-      throw new Error(`平台 ${platformId} 未找到`);
+      throw new Error(`Platform ${platformId} not found`);
     }
 
     await page.goto(url);
-    await page.waitForLoadState("domcontentloaded");
+    
+    // 发射导航事件
+    await this.eventEmitter.emit('platform:navigate', {
+      platformId,
+      page,
+      url
+    });
 
-    // 重新注入样式和脚本
-    const platformConfig = this.config.platforms[platformId];
-    if (platformConfig) {
-      // 重新注入样式
-      if (platformConfig.styles && platformConfig.styles.length > 0) {
-        await this.styleInjector.injectStyles(
-          page,
-          platformConfig.styles,
-          platformId
-        );
-      }
-      
-      // 重新注入脚本
-      await this.scriptInjector.injectScripts(
-        page,
-        platformConfig.scripts,
-        platformId
-      );
-    }
-  }
-
-  /**
-   * 重新加载所有脚本和样式
-   */
-  async reloadAllScripts(): Promise<void> {
-    for (const [platformId, page] of this.pages) {
-      const platformConfig = this.config.platforms[platformId];
-      if (platformConfig) {
-        await page.reload();
-        await page.waitForLoadState("domcontentloaded");
-        
-        // 重新注入样式
-        if (platformConfig.styles && platformConfig.styles.length > 0) {
-          await this.styleInjector.injectStyles(
-            page,
-            platformConfig.styles,
-            platformId
-          );
-        }
-        
-        // 重新注入脚本
-        await this.scriptInjector.injectScripts(
-          page,
-          platformConfig.scripts,
-          platformId
-        );
-      }
-    }
+    console.log(`🧭 Navigated ${platformId} to: ${url}`);
   }
 
   /**
@@ -182,13 +135,23 @@ export class PageManager {
   async closeAllPages(): Promise<void> {
     for (const [platformId, page] of this.pages) {
       try {
+        await this.eventEmitter.emit('platform:close', { platformId });
         await page.close();
-        console.log(`🛑 Page closed: ${platformId}`);
+        console.log(`🔒 Closed platform: ${platformId}`);
       } catch (error) {
-        console.error(`❌ Failed to close page: ${platformId}`, error);
+        console.error(`Failed to close platform ${platformId}:`, error);
+      }
+    }
+
+    for (const [platformId, context] of this.contexts) {
+      try {
+        await context.close();
+      } catch (error) {
+        console.error(`Failed to close context for ${platformId}:`, error);
       }
     }
 
     this.pages.clear();
+    this.contexts.clear();
   }
 }

@@ -2,11 +2,11 @@ import {
   defineConfig,
   consoleLoggerPlugin,
   autoReloadPlugin,
-} from "./dist/index.js";
+} from "./src/index.js";
 
 export default defineConfig({
   platforms: {
-    // 示例平台 1: 本地开发页面
+    // Example platform: Local development page
     local: {
       name: "Local Development",
       url: "https://www.baidu.com/",
@@ -35,47 +35,39 @@ export default defineConfig({
     },
   },
 
-  // 文件监听规则
-  watchRules: [
-    {
-      pattern: "scripts/**/*.js",
-      action: "replace", // 脚本文件变化时替换
-    },
-    {
-      pattern: "config/**/*.js",
-      action: "reload", // 配置文件变化时重载页面
-    }
-  ],
-
-  // 插件配置
+  // Plugin configuration
   plugins: [
-    consoleLoggerPlugin,
-    // autoReloadPlugin,
+    consoleLoggerPlugin(),
+    autoReloadPlugin(),
 
-    // 自定义插件示例
+    // Custom plugin example
     {
       name: "custom-logger",
-      async setup(context) {
+      order: 100,
+      
+      buildStart() {
         console.log("🔧 Custom plugin loaded");
       },
-      async onPageLoad(page, platformId, context) {
-        // 在页面加载时注入一些全局变量
-        await page.evaluate((platform) => {
+      
+      platformReady(platformId, page) {
+        // Inject global variables when page is ready
+        page.evaluate((platform) => {
           window.__DEV_PLATFORM__ = platform;
           window.__DEV_TIMESTAMP__ = Date.now();
         }, platformId);
       },
-      async beforeScriptInject(script, page, context) {
-        // 在脚本注入前添加一些注释
-        return `// Auto-injected at ${new Date().toISOString()}\n${script}`;
+      
+      transformScript(script, scriptPath, platformId) {
+        // Add comments before script injection
+        return `// Auto-injected at ${new Date().toISOString()}\n// Platform: ${platformId}\n// Script: ${scriptPath}\n${script}`;
       },
     },
   ],
 
-  // 全局浏览器选项
+  // Global browser options
   browserOptions: {
     headless: false,
     devtools: true,
-    slowMo: 100, // 减慢操作速度，便于调试
+    slowMo: 100, // Slow down operations for debugging
   },
 });

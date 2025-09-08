@@ -4,34 +4,52 @@ import type { Plugin } from '../types.js';
  * 自动重载插件
  * 当 HTML 或 CSS 文件变化时自动重载页面
  */
-export const autoReloadPlugin: Plugin = {
-  name: 'auto-reload',
-  
-  watchRules: [
-    {
-      pattern: '**/*.html',
-      action: 'reload'
-    },
-    {
-      pattern: '**/*.css',
-      action: 'custom',
-      async handler(filePath, page, context) {
-        // 对于 CSS 文件，尝试热重载而不是完全刷新页面
-        try {
-          await page.evaluate(() => {
-            // 重新加载所有 CSS 文件
-            const links = document.querySelectorAll('link[rel="stylesheet"]');
-            links.forEach((link: any) => {
-              const href = link.href;
-              link.href = href + (href.includes('?') ? '&' : '?') + 't=' + Date.now();
+export function autoReloadPlugin(): Plugin {
+  return {
+    name: 'auto-reload',
+    order: 50,
+    watchPatterns: ['**/*.html', '**/*.css'],
+
+    async fileChanged(filePath, event) {
+      if (event === 'unlink') {
+        return;
+      }
+
+      const pages = this.getPages();
+      
+      if (filePath.endsWith('.html')) {
+        // HTML 文件变化，重载所有页面
+        for (const [platformId, page] of pages) {
+          try {
+            await page.reload();
+            console.log(`🔄 Page reloaded for platform: ${platformId} due to HTML change: ${filePath}`);
+          } catch (error) {
+            console.error(`❌ Failed to reload page for platform ${platformId}:`, error);
+          }
+        }
+      } else if (filePath.endsWith('.css')) {
+        // CSS 文件变化，尝试热重载
+        for (const [platformId, page] of pages) {
+          try {
+            await page.evaluate(() => {
+              // 重新加载所有 CSS 文件
+              const links = document.querySelectorAll('link[rel="stylesheet"]');
+              links.forEach((link: any) => {
+                const href = link.href;
+                link.href = href + (href.includes('?') ? '&' : '?') + 't=' + Date.now();
+              });
             });
-          });
-          console.log(`🎨 CSS hot reload: ${filePath}`);
-        } catch (error) {
-          console.warn(`⚠️  CSS hot reload failed, performing full reload: ${filePath}`);
-          await page.reload();
+            console.log(`🎨 CSS hot reload for platform: ${platformId} due to change: ${filePath}`);
+          } catch (error) {
+            console.warn(`⚠️  CSS hot reload failed for platform ${platformId}, performing full reload:`, error);
+            try {
+              await page.reload();
+            } catch (reloadError) {
+              console.error(`❌ Failed to reload page for platform ${platformId}:`, reloadError);
+            }
+          }
         }
       }
     }
-  ]
-};
+  };
+}

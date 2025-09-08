@@ -1,0 +1,19 @@
+import { defineConfig } from 'playwright-dev-server';
+
+export default defineConfig({
+  platforms: {
+    {{#each platformsArray}}
+    {{key}}: {
+      name: '{{name}}',
+      url: '{{url}}',
+    }{{#unless @last}},{{/unless}}
+    {{/each}}
+  },
+  
+  plugins: [],
+  
+  browserOptions: {
+    headless: {{browserOptions.headless}},
+    devtools: {{browserOptions.devtools}},
+  }
+});
