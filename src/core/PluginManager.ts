@@ -1,5 +1,6 @@
 import type { Plugin, PluginOption, PluginContext, DevServerConfig } from '../types.js';
 import { EventEmitter } from './EventEmitter.js';
+import { logger } from './Logger.js'
 
 /**
  * 插件管理器 - 负责插件的加载、排序和执行
@@ -83,14 +84,14 @@ export class PluginManager {
 
         this.plugins.push(plugin);
       } catch (error) {
-        console.error(`Failed to load plugin:`, error);
+        logger.error(`Failed to load plugin:`, error);
       }
     }
 
     // 按 order 排序插件
     this.plugins.sort((a, b) => (a.order || 100) - (b.order || 100));
 
-    console.log(`Loaded ${this.plugins.length} plugins:`, this.plugins.map(p => p.name));
+    logger.log(`Loaded ${this.plugins.length} plugins:`, this.plugins.map(p => p.name));
   }
 
   /**
@@ -103,7 +104,7 @@ export class PluginManager {
         try {
           await hook.call(this.context, ...args);
         } catch (error) {
-          console.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
+          logger.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
         }
       }
     }
@@ -129,7 +130,7 @@ export class PluginManager {
             transformedCode = result;
           }
         } catch (error) {
-          console.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
+          logger.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
         }
       }
     }
@@ -150,7 +151,7 @@ export class PluginManager {
           const result = await hook.call(this.context, ...args);
           results.push(result);
         } catch (error) {
-          console.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
+          logger.error(`Error executing ${hookName} hook in plugin ${plugin.name}:`, error);
         }
       }
     }

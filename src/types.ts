@@ -133,4 +133,11 @@ export interface DevServerConfig {
   };
   /** 项目根目录 */
   root?: string;
+  /** 日志配置 */
+  logging?: {
+    /** 是否启用日志输出，默认为 false */
+    enabled?: boolean;
+    /** 日志前缀 */
+    prefix?: string;
+  };
 }

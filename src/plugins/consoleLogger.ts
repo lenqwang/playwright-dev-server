@@ -1,4 +1,5 @@
 import type { Plugin } from '../types.js';
+import { logger } from '../core/Logger.js';
 
 /**
  * 控制台日志插件
@@ -17,30 +18,30 @@ export function consoleLoggerPlugin(): Plugin {
         
         switch (type) {
           case 'error':
-            console.error(`🔴 ${prefix} ${text}`);
+            logger.error(`🔴 ${prefix} ${text}`);
             break;
           case 'warning':
-            console.warn(`🟡 ${prefix} ${text}`);
+            logger.warn(`🟡 ${prefix} ${text}`);
             break;
           case 'info':
-            console.info(`🔵 ${prefix} ${text}`);
+            logger.info(`🔵 ${prefix} ${text}`);
             break;
           default:
-            console.log(`⚪ ${prefix} ${text}`);
+            logger.log(`⚪ ${prefix} ${text}`);
         }
       });
       
       // 监听页面错误
       page.on('pageerror', (error) => {
-        console.error(`🔴 [${platformId}] Page Error:`, error.message);
+        logger.error(`🔴 [${platformId}] Page Error:`, error.message);
       });
 
       // 监听请求失败
       page.on('requestfailed', (request) => {
-        console.error(`🔴 [${platformId}] Request Failed: ${request.url()} - ${request.failure()?.errorText}`);
+        logger.error(`🔴 [${platformId}] Request Failed: ${request.url()} - ${request.failure()?.errorText}`);
       });
       
-      console.log(`🎧 Console monitoring enabled: ${platformId}`);
+      logger.log(`🎧 Console monitoring enabled: ${platformId}`);
     }
   };
 }

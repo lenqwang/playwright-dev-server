@@ -1,4 +1,5 @@
 import type { EventName, EventPayload, EventHandler } from '../types.js';
+import { logger } from './Logger.js'
 
 /**
  * 事件发射器 - 用于插件间通信和生命周期管理
@@ -43,7 +44,7 @@ export class EventEmitter {
       try {
         return Promise.resolve(handler(payload));
       } catch (error) {
-        console.error(`Error in event handler for ${event}:`, error);
+        logger.error(`Error in event handler for ${event}:`, error);
         return Promise.resolve();
       }
     });

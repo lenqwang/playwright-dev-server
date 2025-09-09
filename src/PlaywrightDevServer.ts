@@ -5,6 +5,7 @@ import { PageManager } from "./core/PageManager.js";
 import { FileWatcher } from "./core/FileWatcher.js";
 import { EventEmitter } from "./core/EventEmitter.js";
 import { PluginManager } from "./core/PluginManager.js";
+import { logger } from "./core/Logger.js";
 import {
   scriptInjectionPlugin,
   extendContextWithScriptInjection,
@@ -38,7 +39,27 @@ export class PlaywrightDevServer {
       this.projectRoot
     );
 
-    console.log(`📁 Project root: ${this.projectRoot}`);
+    // 初始化日志配置
+    this.initializeLogger();
+
+    logger.log(`📁 Project root: ${this.projectRoot}`);
+  }
+
+  /**
+   * 初始化日志配置
+   */
+  private initializeLogger(): void {
+    const loggingConfig = this.config.logging;
+    
+    if (loggingConfig?.enabled) {
+      logger.enable();
+    } else {
+      logger.disable();
+    }
+    
+    if (loggingConfig?.prefix) {
+      logger.setPrefix(loggingConfig.prefix);
+    }
   }
 
   /**
@@ -46,12 +67,12 @@ export class PlaywrightDevServer {
    */
   async start(): Promise<this> {
     if (this.isStarted) {
-      console.warn("⚠️  Server is already started");
+      logger.warn("⚠️  Server is already started");
       return this;
     }
 
     try {
-      console.log("🚀 Starting Playwright Dev Server...");
+      logger.log("🚀 Starting Playwright Dev Server...");
 
       // 1. 初始化 Playwright
       await this.playwrightManager.initialize(this.config);
@@ -93,11 +114,11 @@ export class PlaywrightDevServer {
       await this.pluginManager.executeHook("buildEnd");
 
       this.isStarted = true;
-      console.log("✅ Playwright Dev Server started successfully!");
+      logger.log("✅ Playwright Dev Server started successfully!");
 
       return this;
     } catch (error) {
-      console.error("❌ Failed to start server:", error);
+      logger.error("❌ Failed to start server:", error);
       await this.stop();
       throw error;
     }
@@ -198,6 +219,37 @@ export class PlaywrightDevServer {
   updateConfig(newConfig: Partial<DevServerConfig>): void {
     this.config = { ...this.config, ...newConfig };
     this.pageManager?.updateConfig(this.config);
+    
+    // 重新初始化日志配置
+    this.initializeLogger();
+  }
+
+  /**
+   * 启用日志输出
+   */
+  enableLogging(): void {
+    logger.enable();
+  }
+
+  /**
+   * 禁用日志输出
+   */
+  disableLogging(): void {
+    logger.disable();
+  }
+
+  /**
+   * 检查日志是否启用
+   */
+  isLoggingEnabled(): boolean {
+    return logger.isEnabled();
+  }
+
+  /**
+   * 设置日志前缀
+   */
+  setLogPrefix(prefix: string): void {
+    logger.setPrefix(prefix);
   }
 
   /**
@@ -209,7 +261,7 @@ export class PlaywrightDevServer {
     }
 
     try {
-      console.log("🛑 Stopping Playwright Dev Server...");
+      logger.log("🛑 Stopping Playwright Dev Server...");
 
       // 发射服务器停止事件
       await this.eventEmitter.emit("server:stop", {});
@@ -233,9 +285,9 @@ export class PlaywrightDevServer {
       this.eventEmitter.removeAllListeners();
 
       this.isStarted = false;
-      console.log("✅ Playwright Dev Server stopped");
+      logger.log("✅ Playwright Dev Server stopped");
     } catch (error) {
-      console.error("❌ Error stopping server:", error);
+      logger.error("❌ Error stopping server:", error);
     }
   }
 }

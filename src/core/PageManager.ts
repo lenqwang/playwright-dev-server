@@ -2,6 +2,7 @@ import type { Page, BrowserContext } from 'playwright';
 import type { DevServerConfig } from '../types.js';
 import { PlaywrightManager } from './PlaywrightManager.js';
 import { EventEmitter } from './EventEmitter.js';
+import { logger } from './Logger.js'
 
 /**
  * 页面管理器 - 负责管理所有平台的页面实例
@@ -24,7 +25,7 @@ export class PageManager {
     
     for (const [platformId, platformConfig] of platformEntries) {
       try {
-        console.log(`🚀 Launching platform: ${platformConfig.name} (${platformId})`);
+        logger.log(`🚀 Launching platform: ${platformConfig.name} (${platformId})`);
         
         // 创建浏览器上下文
         let contextOptions = platformConfig.contextOptions || {};
@@ -53,9 +54,9 @@ export class PageManager {
           page
         });
 
-        console.log(`✅ Platform ready: ${platformConfig.name} (${platformId})`);
+        logger.log(`✅ Platform ready: ${platformConfig.name} (${platformId})`);
       } catch (error) {
-        console.error(`❌ Failed to launch platform ${platformId}:`, error);
+        logger.error(`❌ Failed to launch platform ${platformId}:`, error);
       }
     }
   }
@@ -86,7 +87,7 @@ export class PageManager {
         const title = await page.title();
         list.push({ platformId, url, title });
       } catch (error) {
-        console.error(`Failed to get page info for ${platformId}:`, error);
+        logger.error(`Failed to get page info for ${platformId}:`, error);
       }
     }
     
@@ -111,7 +112,7 @@ export class PageManager {
       url
     });
 
-    console.log(`🧭 Navigated ${platformId} to: ${url}`);
+    logger.log(`🧭 Navigated ${platformId} to: ${url}`);
   }
 
   /**
@@ -129,9 +130,9 @@ export class PageManager {
       try {
         await this.eventEmitter.emit('platform:close', { platformId });
         await page.close();
-        console.log(`🔒 Closed platform: ${platformId}`);
+        logger.log(`🔒 Closed platform: ${platformId}`);
       } catch (error) {
-        console.error(`Failed to close platform ${platformId}:`, error);
+        logger.error(`Failed to close platform ${platformId}:`, error);
       }
     }
 
@@ -139,7 +140,7 @@ export class PageManager {
       try {
         await context.close();
       } catch (error) {
-        console.error(`Failed to close context for ${platformId}:`, error);
+        logger.error(`Failed to close context for ${platformId}:`, error);
       }
     }
 

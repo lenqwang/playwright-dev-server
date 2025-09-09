@@ -1,4 +1,5 @@
 import type { Plugin } from '../types.js';
+import { logger } from '../core/Logger.js'
 
 /**
  * 自动重载插件
@@ -22,9 +23,9 @@ export function autoReloadPlugin(): Plugin {
         for (const [platformId, page] of pages) {
           try {
             await page.reload();
-            console.log(`🔄 Page reloaded for platform: ${platformId} due to HTML change: ${filePath}`);
+            logger.log(`🔄 Page reloaded for platform: ${platformId} due to HTML change: ${filePath}`);
           } catch (error) {
-            console.error(`❌ Failed to reload page for platform ${platformId}:`, error);
+            logger.error(`❌ Failed to reload page for platform ${platformId}:`, error);
           }
         }
       } else if (filePath.endsWith('.css')) {
@@ -39,13 +40,13 @@ export function autoReloadPlugin(): Plugin {
                 link.href = href + (href.includes('?') ? '&' : '?') + 't=' + Date.now();
               });
             });
-            console.log(`🎨 CSS hot reload for platform: ${platformId} due to change: ${filePath}`);
+            logger.log(`🎨 CSS hot reload for platform: ${platformId} due to change: ${filePath}`);
           } catch (error) {
-            console.warn(`⚠️  CSS hot reload failed for platform ${platformId}, performing full reload:`, error);
+            logger.warn(`⚠️  CSS hot reload failed for platform ${platformId}, performing full reload:`, error);
             try {
               await page.reload();
             } catch (reloadError) {
-              console.error(`❌ Failed to reload page for platform ${platformId}:`, reloadError);
+              logger.error(`❌ Failed to reload page for platform ${platformId}:`, reloadError);
             }
           }
         }

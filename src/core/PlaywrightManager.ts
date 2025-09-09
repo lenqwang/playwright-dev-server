@@ -1,12 +1,13 @@
 import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from 'playwright';
 import type { DevServerConfig } from '../types.js';
+import { logger } from './Logger.js'
 
 export class PlaywrightManager {
   private browser: Browser | null = null;
   private defaultContext: BrowserContext | null = null;
 
   async initialize(config: DevServerConfig) {
-    console.log('🚀 Initializing Playwright browser...');
+    logger.log('🚀 Initializing Playwright browser...');
     
     this.browser = await chromium.launch({
       headless: config.browserOptions?.headless ?? false,
@@ -16,7 +17,7 @@ export class PlaywrightManager {
 
     this.defaultContext = await this.browser.newContext();
     
-    console.log('✅ Playwright browser initialization completed');
+    logger.log('✅ Playwright browser initialization completed');
   }
 
   getBrowser(): Browser {
@@ -41,7 +42,7 @@ export class PlaywrightManager {
       throw new Error('Browser not initialized');
     }
 
-    console.log(`🌐 Creating browser context with options:`, Object.keys(contextOptions));
+    logger.log(`🌐 Creating browser context with options:`, Object.keys(contextOptions));
     
     return await this.browser.newContext(contextOptions);
   }
@@ -57,6 +58,6 @@ export class PlaywrightManager {
       this.browser = null;
     }
     
-    console.log('🛑 Playwright browser closed');
+    logger.log('🛑 Playwright browser closed');
   }
 }

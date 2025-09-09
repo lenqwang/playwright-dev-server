@@ -70,11 +70,85 @@ export default defineConfig({
     autoReloadPlugin(),
   ],
   
+  // 日志配置
+  logging: {
+    enabled: true,  // 启用日志输出，默认为 false
+    prefix: '[DEV]' // 可选的日志前缀
+  },
+  
   browserOptions: {
     headless: false,
     devtools: true,
   }
 });
+```
+
+## 日志管理
+
+Playwright Dev Server 提供了统一的日志管理系统，支持动态开启和关闭日志输出。
+
+### 配置日志
+
+在配置文件中设置日志选项：
+
+```javascript
+export default defineConfig({
+  logging: {
+    enabled: true,  // 启用日志输出，默认为 false
+    prefix: '[DEV]' // 可选的日志前缀
+  },
+  // ... 其他配置
+});
+```
+
+### API 控制日志
+
+通过服务器实例动态控制日志：
+
+```javascript
+import { PlaywrightDevServer } from 'playwright-dev-server';
+
+const server = new PlaywrightDevServer(config);
+
+// 启用日志
+server.enableLogging();
+
+// 禁用日志
+server.disableLogging();
+
+// 检查日志状态
+console.log(server.isLoggingEnabled()); // true/false
+
+// 设置日志前缀
+server.setLogPrefix('[CUSTOM]');
+
+// 通过配置更新日志设置
+server.updateConfig({
+  logging: {
+    enabled: true,
+    prefix: '[UPDATED]'
+  }
+});
+```
+
+### 直接使用 Logger
+
+也可以直接导入和使用 Logger 实例：
+
+```javascript
+import { logger } from 'playwright-dev-server';
+
+// 各种日志级别
+logger.log('普通日志');
+logger.info('信息日志');
+logger.warn('警告日志');
+logger.error('错误日志');
+logger.debug('调试日志');
+
+// 性能计时
+logger.time('操作耗时');
+// ... 执行操作
+logger.timeEnd('操作耗时');
 ```
 
 ## Plugin System

@@ -1,4 +1,5 @@
 import type { Plugin } from '../types.js';
+import { logger } from '../core/Logger.js';
 
 /**
  * 示例插件：页面标题监控
@@ -11,7 +12,7 @@ export function pageTitleMonitorPlugin(): Plugin {
 
     async platformReady(platformId, page) {
       // 监听页面标题变化
-      await page.evaluate(() => {
+      await page.evaluate((platformId) => {
         const observer = new MutationObserver(() => {
           console.log(`[${platformId}] Page title changed to: ${document.title}`);
         });
@@ -20,9 +21,9 @@ export function pageTitleMonitorPlugin(): Plugin {
           childList: true,
           subtree: true
         });
-      });
+      }, platformId);
 
-      console.log(`📋 Title monitoring enabled for platform: ${platformId}`);
+      logger.log(`📋 Title monitoring enabled for platform: ${platformId}`);
     }
   };
 }
@@ -62,7 +63,7 @@ export function performanceMonitorPlugin(): Plugin {
         `
       });
 
-      console.log(`⚡ Performance monitoring enabled for platform: ${platformId}`);
+      logger.log(`⚡ Performance monitoring enabled for platform: ${platformId}`);
     }
   };
 }
@@ -90,9 +91,9 @@ export function autoScreenshotPlugin(options: {
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
             const filename = `${outputDir}/${platformId}-error-${timestamp}.png`;
             await page.screenshot({ path: filename, fullPage: true });
-            console.log(`📸 Error screenshot saved: ${filename}`);
+            logger.log(`📸 Error screenshot saved: ${filename}`);
           } catch (screenshotError) {
-            console.error('Failed to take error screenshot:', screenshotError);
+            logger.error('Failed to take error screenshot:', screenshotError);
           }
         });
       }
@@ -104,9 +105,9 @@ export function autoScreenshotPlugin(options: {
           const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
           const filename = `${outputDir}/${platformId}-navigate-${timestamp}.png`;
           await page.screenshot({ path: filename, fullPage: true });
-          console.log(`📸 Navigation screenshot saved: ${filename} (${url})`);
+          logger.log(`📸 Navigation screenshot saved: ${filename} (${url})`);
         } catch (error) {
-          console.error('Failed to take navigation screenshot:', error);
+          logger.error('Failed to take navigation screenshot:', error);
         }
       }
     }

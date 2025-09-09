@@ -2,6 +2,7 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import type { Plugin, ScriptConfig, PluginContext } from "../types.js";
 import type { Page } from "playwright";
+import { logger } from '../core/Logger.js';
 
 /**
  * 脚本注入插件 - 负责将脚本注入到页面中
@@ -27,7 +28,7 @@ export function scriptInjectionPlugin(): Plugin {
           if (this.injectScript) {
             await this.injectScript(platformId, page, script);
           } else {
-            console.error(
+            logger.error(
               "injectScript method not available in plugin context"
             );
           }
@@ -55,7 +56,7 @@ export function scriptInjectionPlugin(): Plugin {
           if (page) {
             if (script.reloadOnChange) {
               // 刷新页面并重新注入所有脚本和样式
-              console.log(
+              logger.log(
                 `🔄 Reloading page for script: ${script.path} (platform: ${platformId})`
               );
               await page.reload();
@@ -67,13 +68,13 @@ export function scriptInjectionPlugin(): Plugin {
               if (this.reInjectAllAssets) {
                 await this.reInjectAllAssets(platformId, page);
               } else {
-                console.error(
+                logger.error(
                   "reInjectAllAssets method not available in plugin context"
                 );
               }
             } else if (this.injectScript) {
               // 替换脚本
-              console.log(
+              logger.log(
                 `🔄 Replacing script: ${script.path} for platform: ${platformId}`
               );
               await this.injectScript(platformId, page, script);
@@ -145,11 +146,11 @@ export function extendContextWithScriptInjection(context: PluginContext) {
         content,
       });
 
-      console.log(
+      logger.log(
         `✅ Injected script: ${script.path} to platform: ${platformId}`
       );
     } catch (error) {
-      console.error(`❌ Failed to inject script ${script.path}:`, error);
+      logger.error(`❌ Failed to inject script ${script.path}:`, error);
     }
   };
 
@@ -159,7 +160,7 @@ export function extendContextWithScriptInjection(context: PluginContext) {
       const platform = this.config.platforms[platformId];
       if (!platform) return;
 
-      console.log(`🔄 Re-injecting all assets for platform: ${platformId}`);
+      logger.log(`🔄 Re-injecting all assets for platform: ${platformId}`);
 
       // 重新注入所有样式（按顺序）
       if (platform.styles?.length) {
@@ -187,9 +188,9 @@ export function extendContextWithScriptInjection(context: PluginContext) {
         }
       }
 
-      console.log(`✅ All assets re-injected for platform: ${platformId}`);
+      logger.log(`✅ All assets re-injected for platform: ${platformId}`);
     } catch (error) {
-      console.error(
+      logger.error(
         `❌ Failed to re-inject assets for platform ${platformId}:`,
         error
       );

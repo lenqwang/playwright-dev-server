@@ -1,8 +1,8 @@
 import chokidar, { type FSWatcher } from 'chokidar';
-import { resolve } from 'path';
 import { minimatch } from 'minimatch';
 import type { DevServerConfig } from '../types.js';
 import { EventEmitter } from './EventEmitter.js';
+import { logger } from './Logger.js'
 
 /**
  * 文件监听器 - 监听文件变化并发射事件
@@ -20,13 +20,13 @@ export class FileWatcher {
    * 开始监听文件变化
    */
   startWatching(watchPatterns: string[] = []): void {
-    console.log('👀 Starting to watch file changes...');
+    logger.log('👀 Starting to watch file changes...');
 
     // 收集所有需要监听的文件模式
     const patterns = this.collectWatchPatterns(watchPatterns);
     
     if (patterns.length === 0) {
-      console.log('⚠️  No file patterns found to watch');
+      logger.log('⚠️  No file patterns found to watch');
       return;
     }
 
@@ -38,21 +38,21 @@ export class FileWatcher {
 
     // 监听文件变化事件
     this.watcher.on('add', async (filePath) => {
-      console.log(`➕ File added: ${filePath}`);
+      logger.log(`➕ File added: ${filePath}`);
       await this.eventEmitter.emit('file:changed', { filePath, event: 'add' });
     });
 
     this.watcher.on('change', async (filePath) => {
-      console.log(`📝 File changed: ${filePath}`);
+      logger.log(`📝 File changed: ${filePath}`);
       await this.eventEmitter.emit('file:changed', { filePath, event: 'change' });
     });
 
     this.watcher.on('unlink', async (filePath) => {
-      console.log(`➖ File removed: ${filePath}`);
+      logger.log(`➖ File removed: ${filePath}`);
       await this.eventEmitter.emit('file:changed', { filePath, event: 'unlink' });
     });
 
-    console.log(`✅ File watching started, patterns: ${patterns.join(', ')}`);
+    logger.log(`✅ File watching started, patterns: ${patterns.join(', ')}`);
   }
 
   /**
@@ -64,7 +64,7 @@ export class FileWatcher {
     // 添加插件的监听模式
     for (const pattern of pluginPatterns) {
       patterns.add(pattern);
-      console.log(`🔌 Adding plugin watch pattern: ${pattern}`);
+      logger.log(`🔌 Adding plugin watch pattern: ${pattern}`);
     }
 
     // 添加脚本文件监听
@@ -74,7 +74,7 @@ export class FileWatcher {
           // 标准化路径，移除 ./ 前缀
           const normalizedPath = script.path.replace(/^\.\//, '');
           patterns.add(normalizedPath);
-          console.log(`📜 Adding script file watch: ${normalizedPath} (platform: ${platformId})`);
+          logger.log(`📜 Adding script file watch: ${normalizedPath} (platform: ${platformId})`);
         }
       }
       
@@ -84,12 +84,12 @@ export class FileWatcher {
           // 标准化路径，移除 ./ 前缀
           const normalizedPath = style.path.replace(/^\.\//, '');
           patterns.add(normalizedPath);
-          console.log(`🎨 Adding style file watch: ${normalizedPath} (platform: ${platformId})`);
+          logger.log(`🎨 Adding style file watch: ${normalizedPath} (platform: ${platformId})`);
         }
       }
     }
 
-    console.log(`🎯 Total collected ${patterns.size} watch patterns`);
+    logger.log(`🎯 Total collected ${patterns.size} watch patterns`);
     return Array.from(patterns);
   }
 
@@ -108,7 +108,7 @@ export class FileWatcher {
     if (this.watcher) {
       await this.watcher.close();
       this.watcher = null;
-      console.log('🛑 File watching stopped');
+      logger.log('🛑 File watching stopped');
     }
   }
 }

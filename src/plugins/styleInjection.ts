@@ -2,6 +2,7 @@ import { readFile } from "fs/promises";
 import { resolve } from "path";
 import type { Plugin, StyleConfig, PluginContext } from "../types.js";
 import type { Page } from "playwright";
+import { logger } from '../core/Logger.js';
 
 /**
  * 样式注入插件 - 负责将样式注入到页面中
@@ -27,7 +28,7 @@ export function styleInjectionPlugin(): Plugin {
           if (this.injectStyle) {
             await this.injectStyle(platformId, page, style);
           } else {
-            console.error('injectStyle method not available in plugin context');
+            logger.error('injectStyle method not available in plugin context');
           }
         }
       }
@@ -53,7 +54,7 @@ export function styleInjectionPlugin(): Plugin {
           if (page) {
             if (style.reloadOnChange) {
               // 刷新页面并重新注入所有脚本和样式
-              console.log(
+              logger.log(
                 `🔄 Reloading page for style: ${style.path} (platform: ${platformId})`
               );
               await page.reload();
@@ -67,7 +68,7 @@ export function styleInjectionPlugin(): Plugin {
               }
             } else if (this.injectStyle) {
               // 替换样式
-              console.log(
+              logger.log(
                 `🎨 Replacing style: ${style.path} for platform: ${platformId}`
               );
               await this.injectStyle(platformId, page, style);
@@ -134,11 +135,11 @@ export function extendContextWithStyleInjection(context: PluginContext) {
         content,
       });
 
-      console.log(
+      logger.log(
         `🎨 Injected style: ${style.path} to platform: ${platformId}`
       );
     } catch (error) {
-      console.error(`❌ Failed to inject style ${style.path}:`, error);
+      logger.error(`❌ Failed to inject style ${style.path}:`, error);
     }
   };
 }

@@ -25,6 +25,7 @@ export { PageManager } from './core/PageManager.js';
 export { FileWatcher } from './core/FileWatcher.js';
 export { EventEmitter } from './core/EventEmitter.js';
 export { PluginManager } from './core/PluginManager.js';
+export { Logger, logger } from './core/Logger.js';
 
 // 导出内置插件
 export { consoleLoggerPlugin } from './plugins/consoleLogger.js';
