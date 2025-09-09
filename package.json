@@ -1,6 +1,6 @@
 {
   "name": "playwright-dev-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A development server for injecting scripts into web pages using Playwright",
   "main": "dist/index.js",
   "bin": {
