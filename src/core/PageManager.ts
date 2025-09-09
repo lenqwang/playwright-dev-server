@@ -29,14 +29,6 @@ export class PageManager {
         // 创建浏览器上下文
         let contextOptions = platformConfig.contextOptions || {};
         
-        // 向后兼容：如果使用了旧的 browserOptions，转换为新的 contextOptions
-        if (platformConfig.browserOptions) {
-          console.warn(`⚠️  browserOptions is deprecated for platform ${platformId}, please use contextOptions instead`);
-          if (platformConfig.browserOptions.viewport) {
-            contextOptions.viewport = platformConfig.browserOptions.viewport;
-          }
-        }
-        
         const context = await this.playwrightManager.createContext(contextOptions);
         
         this.contexts.set(platformId, context);

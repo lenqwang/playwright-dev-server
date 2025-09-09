@@ -1,4 +1,4 @@
-import { chromium, type Browser, type BrowserContext } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type BrowserContextOptions } from 'playwright';
 import type { DevServerConfig } from '../types.js';
 
 export class PlaywrightManager {
@@ -36,39 +36,14 @@ export class PlaywrightManager {
   /**
    * 创建新的浏览器上下文
    */
-  async createContext(contextOptions?: import('../types.js').BrowserContextOptions): Promise<BrowserContext> {
+  async createContext(contextOptions: BrowserContextOptions = {}): Promise<BrowserContext> {
     if (!this.browser) {
       throw new Error('Browser not initialized');
     }
 
-    // 构建 Playwright 的上下文选项
-    const playwrightOptions: any = {};
-
-    if (contextOptions) {
-      // 基本选项
-      if (contextOptions.viewport !== undefined) playwrightOptions.viewport = contextOptions.viewport;
-      if (contextOptions.userAgent) playwrightOptions.userAgent = contextOptions.userAgent;
-      if (contextOptions.deviceScaleFactor) playwrightOptions.deviceScaleFactor = contextOptions.deviceScaleFactor;
-      if (contextOptions.isMobile !== undefined) playwrightOptions.isMobile = contextOptions.isMobile;
-      if (contextOptions.hasTouch !== undefined) playwrightOptions.hasTouch = contextOptions.hasTouch;
-      if (contextOptions.locale) playwrightOptions.locale = contextOptions.locale;
-      if (contextOptions.timezoneId) playwrightOptions.timezoneId = contextOptions.timezoneId;
-      if (contextOptions.permissions) playwrightOptions.permissions = contextOptions.permissions;
-      if (contextOptions.extraHTTPHeaders) playwrightOptions.extraHTTPHeaders = contextOptions.extraHTTPHeaders;
-      if (contextOptions.offline !== undefined) playwrightOptions.offline = contextOptions.offline;
-      if (contextOptions.httpCredentials) playwrightOptions.httpCredentials = contextOptions.httpCredentials;
-      if (contextOptions.ignoreHTTPSErrors !== undefined) playwrightOptions.ignoreHTTPSErrors = contextOptions.ignoreHTTPSErrors;
-      if (contextOptions.colorScheme) playwrightOptions.colorScheme = contextOptions.colorScheme;
-      if (contextOptions.reducedMotion) playwrightOptions.reducedMotion = contextOptions.reducedMotion;
-      if (contextOptions.forcedColors) playwrightOptions.forcedColors = contextOptions.forcedColors;
-      if (contextOptions.acceptDownloads !== undefined) playwrightOptions.acceptDownloads = contextOptions.acceptDownloads;
-      if (contextOptions.bypassCSP !== undefined) playwrightOptions.bypassCSP = contextOptions.bypassCSP;
-      if (contextOptions.recordVideo) playwrightOptions.recordVideo = contextOptions.recordVideo;
-      if (contextOptions.recordHar) playwrightOptions.recordHar = contextOptions.recordHar;
-    }
-
-    console.log(`🌐 Creating browser context with options:`, Object.keys(playwrightOptions));
-    return await this.browser.newContext(playwrightOptions);
+    console.log(`🌐 Creating browser context with options:`, Object.keys(contextOptions));
+    
+    return await this.browser.newContext(contextOptions);
   }
 
   async close() {

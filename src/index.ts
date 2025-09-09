@@ -2,6 +2,8 @@
 export { PlaywrightDevServer } from './PlaywrightDevServer.js';
 export { defineConfig } from './config.js';
 
+export { devices } from 'playwright'
+
 // 导出类型定义
 export type {
   DevServerConfig,
