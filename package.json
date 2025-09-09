@@ -1,6 +1,6 @@
 {
   "name": "playwright-dev-server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "A development server for injecting scripts into web pages using Playwright",
   "main": "dist/index.js",
   "bin": {
@@ -16,7 +16,8 @@
     "test": "vitest",
     "test:build": "node test-build.js",
     "test:tsc": "node test-tsc-build.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "release": "npx np"
   },
   "keywords": [
     "playwright",
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@types/handlebars": "^4.1.0",
     "@types/node": "^24.3.1",
+    "np": "^10.2.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
@@ -45,5 +47,9 @@
     "dist",
     "templates",
     "README.md"
-  ]
+  ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  }
 }
